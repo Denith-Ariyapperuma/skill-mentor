@@ -17,10 +17,11 @@ services:
     ports:
       - "8085:8081"
     environment:
-      - DATABASE_URL=jdbc:postgresql://db:5432/skill_mentor_v2
-      - USERNAME=${DB_USERNAME:-postgres}
-      - PASSWORD=${DB_PASSWORD:-password}
-      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/skill_mentor_v2
+      - SPRING_DATASOURCE_USERNAME=${DB_USERNAME:-postgres}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-password}
+      - CLERK_JWKS_URL=${CLERK_JWKS_URL}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
     depends_on:
       - db
 

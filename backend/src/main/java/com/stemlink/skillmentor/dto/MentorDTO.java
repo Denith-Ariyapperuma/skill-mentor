@@ -8,6 +8,19 @@ import lombok.Data;
 @Data
 public class MentorDTO {
 
+    // Admin-only override fields — if provided by an ADMIN caller, these are used
+    // directly instead of extracting identity from the JWT claims. Ignored for MENTOR role.
+    private String mentorId;
+
+    @Size(max = 100, message = "First name must not exceed 100 characters")
+    private String firstName;
+
+    @Size(max = 100, message = "Last name must not exceed 100 characters")
+    private String lastName;
+
+    @Email(message = "Email must be valid")
+    private String email;
+
     @Size(max = 20, message = "Phone number must not exceed 20 characters")
     private String phoneNumber;
 
@@ -24,4 +37,16 @@ public class MentorDTO {
 
     @Size(max = 500, message = "Bio must not exceed 500 characters")
     private String bio;
+
+    // Additional fields required for frontend mentor profile displays
+    private String profileImageUrl;
+
+    private Integer positiveReviews;
+
+    private Integer totalEnrollments;
+
+    private Boolean isCertified;
+
+    @Size(max = 10, message = "Start year must not exceed 10 characters")
+    private String startYear;
 }

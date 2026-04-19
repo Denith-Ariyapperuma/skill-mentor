@@ -42,18 +42,21 @@ public class SubjectController {
 //    }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public Subject createSubject(@Valid @RequestBody SubjectDTO subjectDTO) {
         Subject subject = modelMapper.map(subjectDTO, Subject.class);
         return subjectService.addNewSubject(subjectDTO.getMentorId(), subject);
     }
 
     @PutMapping("{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public Subject updateSubject(@PathVariable Long id, @RequestBody SubjectDTO updatedSubjectDTO) {
         Subject subject = modelMapper.map(updatedSubjectDTO, Subject.class);
         return subjectService.updateSubjectById(id, subject);
     }
 
     @DeleteMapping("{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public void deleteSubject(@PathVariable Long id) {
         subjectService.deleteSubject(id);
     }

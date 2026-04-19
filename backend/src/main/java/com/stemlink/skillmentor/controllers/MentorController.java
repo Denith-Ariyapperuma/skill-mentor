@@ -1,6 +1,7 @@
 package com.stemlink.skillmentor.controllers;
 
 import com.stemlink.skillmentor.dto.MentorDTO;
+import com.stemlink.skillmentor.dto.response.MentorProfileResponse;
 import com.stemlink.skillmentor.entities.Mentor;
 import com.stemlink.skillmentor.security.UserPrincipal;
 import com.stemlink.skillmentor.services.MentorService;
@@ -23,7 +24,7 @@ import static com.stemlink.skillmentor.constants.UserRoles.*;
 @RequestMapping(path = "/api/v1/mentors")
 @RequiredArgsConstructor
 @Validated
-@PreAuthorize("isAuthenticated()")
+//@PreAuthorize("isAuthenticated()") // Allow all authenticated users to access mentor endpoints, but specific actions are further restricted by method-level security annotations
 public class MentorController extends AbstractController {
 
     private final MentorService mentorService;
@@ -35,6 +36,11 @@ public class MentorController extends AbstractController {
             Pageable pageable) {
         Page<Mentor> mentors = mentorService.getAllMentors(name, pageable);
         return sendOkResponse(mentors);
+    }
+
+    @GetMapping("{id}/profile")
+    public ResponseEntity<MentorProfileResponse> getMentorProfile(@PathVariable Long id) {
+        return sendOkResponse(mentorService.getMentorProfile(id));
     }
 
     @GetMapping("{id}")
@@ -49,10 +55,18 @@ public class MentorController extends AbstractController {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
 
         Mentor mentor = modelMapper.map(mentorDTO, Mentor.class);
-        mentor.setMentorId(userPrincipal.getId());
-        mentor.setFirstName(userPrincipal.getFirstName());
-        mentor.setLastName(userPrincipal.getLastName());
-        mentor.setEmail(userPrincipal.getEmail());
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin || mentorDTO.getMentorId() == null) {
+            // MENTOR role, or ADMIN without explicit identity fields in body → use JWT claims
+            mentor.setMentorId(userPrincipal.getId());
+            mentor.setFirstName(userPrincipal.getFirstName());
+            mentor.setLastName(userPrincipal.getLastName());
+            mentor.setEmail(userPrincipal.getEmail());
+        }
+        // else: ADMIN provided mentorId (+ firstName/lastName/email) in body → ModelMapper already mapped them
 
         Mentor createdMentor = mentorService.createNewMentor(mentor);
 

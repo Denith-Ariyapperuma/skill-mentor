@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Calendar } from "./ui/calendar";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,11 +10,21 @@ import {
 } from "./ui/dialog";
 import { useNavigate } from "react-router";
 import type { Mentor } from "@/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { startOfDay } from "date-fns";
 
 interface SchedulingModalProps {
   isOpen: boolean;
   onClose: () => void;
   mentor: Mentor;
+  /** Database subject id to pre-select */
+  defaultSubjectId?: number;
 }
 
 const TIME_SLOTS = [
@@ -32,33 +42,54 @@ export function SchedulingModal({
   isOpen,
   onClose,
   mentor,
+  defaultSubjectId,
 }: SchedulingModalProps) {
   const [date, setDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>();
+  const [subjectId, setSubjectId] = useState<string>("");
   const navigate = useNavigate();
 
   const mentorName = `${mentor.firstName} ${mentor.lastName}`;
-  const subject = mentor.subjects[0];
+
+  useEffect(() => {
+    if (!mentor.subjects.length) {
+      setSubjectId("");
+      return;
+    }
+    const match = defaultSubjectId
+      ? mentor.subjects.find((s) => s.id === defaultSubjectId)
+      : undefined;
+    setSubjectId(String((match ?? mentor.subjects[0]).id));
+  }, [mentor, defaultSubjectId]);
+
+  const selectedSubject = mentor.subjects.find(
+    (s) => String(s.id) === subjectId,
+  );
 
   const handleSchedule = () => {
-    if (date && selectedTime && subject) {
+    if (date && selectedTime && selectedSubject) {
       const sessionDateTime = new Date(date);
       const [hours, minutes] = selectedTime.split(":");
       sessionDateTime.setHours(
-        Number.parseInt(hours),
-        Number.parseInt(minutes),
+        Number.parseInt(hours, 10),
+        Number.parseInt(minutes, 10),
       );
 
-      const sessionId = `${mentor.id}-${Date.now()}`;
+      if (sessionDateTime < new Date()) {
+        return;
+      }
+
+      const sessionId = `new-${mentor.id}-${Date.now()}`;
       const searchParams = new URLSearchParams({
         date: sessionDateTime.toISOString(),
-        courseTitle: subject?.subjectName ?? "",
+        courseTitle: selectedSubject.subjectName,
         mentorName: mentorName,
-        mentorId: mentor.mentorId,
+        mentorId: String(mentor.id),
         mentorImg: mentor.profileImageUrl ?? "",
-        subjectId: String(subject?.id ?? ""),
+        subjectId: String(selectedSubject.id),
       });
       navigate(`/payment/${sessionId}?${searchParams.toString()}`);
+      onClose();
     }
   };
 
@@ -71,6 +102,34 @@ export function SchedulingModal({
             Pick a date and time for your mentoring session with {mentorName}.
           </DialogDescription>
         </DialogHeader>
+
+        <div className="space-y-4">
+          <div>
+            <p className="text-sm font-medium mb-2">Mentor</p>
+            <p className="text-sm text-muted-foreground">
+              {mentorName} · {mentor.company}
+            </p>
+          </div>
+
+          {mentor.subjects.length > 1 ? (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Subject</p>
+              <Select value={subjectId} onValueChange={setSubjectId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  {mentor.subjects.map((s) => (
+                    <SelectItem key={s.id} value={String(s.id)}>
+                      {s.subjectName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h4 className="font-medium mb-2">Choose a date</h4>
@@ -78,6 +137,7 @@ export function SchedulingModal({
               mode="single"
               selected={date}
               onSelect={setDate}
+              disabled={(d) => d < startOfDay(new Date())}
               className="rounded-md border"
             />
           </div>
@@ -87,6 +147,7 @@ export function SchedulingModal({
               {TIME_SLOTS.map((time) => (
                 <Button
                   key={time}
+                  type="button"
                   variant={selectedTime === time ? "default" : "outline"}
                   className="w-full"
                   onClick={() => setSelectedTime(time)}
@@ -101,8 +162,11 @@ export function SchedulingModal({
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleSchedule} disabled={!date || !selectedTime || !subject}>
-            Save
+          <Button
+            onClick={handleSchedule}
+            disabled={!date || !selectedTime || !selectedSubject}
+          >
+            Continue to payment
           </Button>
         </div>
       </DialogContent>

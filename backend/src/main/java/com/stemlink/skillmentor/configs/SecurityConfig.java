@@ -6,6 +6,7 @@ import com.stemlink.skillmentor.security.SkillMentorAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -51,6 +52,8 @@ public class SecurityConfig {
                                 "/webjars/**",
                                 "/swagger-resources/**"
                         ).permitAll()
+                        // Public read access to mentors (list + profile)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/mentors", "/api/v1/mentors/**").permitAll()
                         .anyRequest().authenticated()
                 )
             .addFilterBefore(clerkAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

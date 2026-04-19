@@ -10,9 +10,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/components/hooks/use-toast";
 import { useAuth } from "@clerk/clerk-react";
 import { enrollInSession } from "@/lib/api";
+import { getTokenForBackend } from "@/lib/clerk-token";
 
 export default function PaymentPage() {
   const navigate = useNavigate();
@@ -22,13 +31,15 @@ export default function PaymentPage() {
   const { getToken } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [conflictOpen, setConflictOpen] = useState(false);
+  const [conflictMessage, setConflictMessage] = useState("");
 
   const date = searchParams.get("date");
   const courseTitle = searchParams.get("courseTitle");
   const mentorId = searchParams.get("mentorId");
   const mentorName = searchParams.get("mentorName");
   const subjectId = searchParams.get("subjectId");
-  const sessionDate = date ? new Date(date).toLocaleDateString() : null;
+  const sessionDate = date ? new Date(date).toLocaleString() : null;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     if (e.target.files && e.target.files[0]) {
@@ -45,32 +56,48 @@ export default function PaymentPage() {
     setIsUploading(true);
 
     try {
-      const token = await getToken({ template: "skillmentor-auth" });
+      const token = await getTokenForBackend(getToken);
       if (!token) throw new Error("Not authenticated");
 
+      const mid = Number(mentorId);
+      const sid = Number(subjectId);
+      if (Number.isNaN(mid) || Number.isNaN(sid)) {
+        throw new Error("Invalid mentor or subject. Please schedule again from the mentor page.");
+      }
+
       await enrollInSession(token, {
-        mentorId: Number(mentorId),
-        subjectId: Number(subjectId),
+        mentorId: mid,
+        subjectId: sid,
         sessionAt: date,
         durationMinutes: 60,
       });
 
       toast({
-        title: "Payment Confirmed",
+        title: "Session booked",
         description:
-          "Your bank slip has been uploaded and verified. Session scheduled successfully.",
+          "Your booking was created. Complete any payment steps from your dashboard.",
       });
 
       setTimeout(() => {
         navigate("/dashboard");
-      }, 2000);
+      }, 1500);
     } catch (error) {
-      toast({
-        title: "Error",
-        description:
-          "There was a problem scheduling your session. Please try again.",
-        variant: "destructive",
-      });
+      const message =
+        error instanceof Error ? error.message : "Something went wrong.";
+      if (
+        message.toLowerCase().includes("overlap") ||
+        message.toLowerCase().includes("past") ||
+        message.toLowerCase().includes("not belong")
+      ) {
+        setConflictMessage(message);
+        setConflictOpen(true);
+      } else {
+        toast({
+          title: "Could not book session",
+          description: message,
+          variant: "destructive",
+        });
+      }
       setIsUploading(false);
     }
   };
@@ -93,7 +120,7 @@ export default function PaymentPage() {
             )}
             {sessionDate && (
               <div className="text-sm">
-                <strong>Session Date:</strong> {sessionDate}
+                <strong>Session:</strong> {sessionDate}
               </div>
             )}
             <div className="space-y-2">
@@ -107,8 +134,9 @@ export default function PaymentPage() {
               />
             </div>
             <div className="text-sm text-muted-foreground">
-              Please upload a clear image of your bank transfer slip to confirm
-              your payment.
+              Upload a clear image of your bank transfer slip. The backend will
+              record your session; admins confirm payment from the admin
+              dashboard.
             </div>
           </CardContent>
           <CardFooter>
@@ -117,11 +145,26 @@ export default function PaymentPage() {
               className="w-full"
               disabled={!file || isUploading}
             >
-              {isUploading ? "Verifying..." : "Confirm Payment"}
+              {isUploading ? "Submitting…" : "Confirm & book session"}
             </Button>
           </CardFooter>
         </form>
       </Card>
+
+      <Dialog open={conflictOpen} onOpenChange={setConflictOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Scheduling conflict</DialogTitle>
+            <DialogDescription>{conflictMessage}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConflictOpen(false)}>
+              OK
+            </Button>
+            <Button onClick={() => navigate("/")}>Browse mentors</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

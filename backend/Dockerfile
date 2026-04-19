@@ -7,8 +7,8 @@ COPY . .
 # Build the application
 RUN mvn package -DskipTests
 
-# Expose the application port
-EXPOSE 8081
+# Expose the port Render injects via the PORT env var
+EXPOSE ${PORT:-8081}
 
 # Run the application directly from the target folder
 ENTRYPOINT ["java", "-jar", "target/skillmentor-0.0.1-SNAPSHOT.jar"]

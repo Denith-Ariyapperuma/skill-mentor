@@ -23,11 +23,14 @@ public class Subject implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, name = "subject_name", length = 20)
+    @Column(nullable = false, name = "subject_name", length = 255)
     private String subjectName;
 
     @Column(nullable = false)
     private String description;
+
+    @Column(name = "course_image_url")
+    private String courseImageUrl;
 
     // --------- Relationship -------------
     @ManyToOne(fetch = FetchType.LAZY)

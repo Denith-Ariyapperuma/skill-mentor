@@ -1,7 +1,16 @@
-import type { Enrollment, Mentor } from "@/types";
+import type { Enrollment, Mentor, MentorProfile } from "@/types";
 
-const API_BASE_URL =
+export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8081";
+
+async function parseErrorMessage(res: Response): Promise<string> {
+  const body = await res.json().catch(() => ({}));
+  const msg =
+    (body as { message?: string }).message ||
+    (body as { error?: string }).error ||
+    `HTTP ${res.status}`;
+  return msg;
+}
 
 async function fetchWithAuth(
   endpoint: string,
@@ -18,8 +27,7 @@ async function fetchWithAuth(
   });
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ message: "Request failed" }));
-    throw new Error(error.message || `HTTP ${res.status}`);
+    throw new Error(await parseErrorMessage(res));
   }
 
   return res;
@@ -34,6 +42,16 @@ export async function getPublicMentors(
     `${API_BASE_URL}/api/v1/mentors?page=${page}&size=${size}`,
   );
   if (!res.ok) throw new Error("Failed to fetch mentors");
+  return res.json();
+}
+
+export async function getMentorProfile(
+  mentorId: number,
+): Promise<MentorProfile> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/mentors/${mentorId}/profile`,
+  );
+  if (!res.ok) throw new Error("Failed to load mentor profile");
   return res.json();
 }
 
@@ -56,5 +74,17 @@ export async function enrollInSession(
 
 export async function getMyEnrollments(token: string): Promise<Enrollment[]> {
   const res = await fetchWithAuth("/api/v1/sessions/my-sessions", token);
+  return res.json();
+}
+
+export async function submitSessionReview(
+  token: string,
+  sessionId: number,
+  data: { rating: number; review: string },
+): Promise<Enrollment> {
+  const res = await fetchWithAuth(`/api/v1/sessions/${sessionId}/review`, token, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
   return res.json();
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -23,6 +24,7 @@ export function MentorCard({ mentor }: MentorCardProps) {
   const [isSignupDialogOpen, setIsSignupDialogOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const { isSignedIn } = useAuth();
+  const navigate = useNavigate();
 
   const mentorName = `${mentor.firstName} ${mentor.lastName}`;
   const hasSubjects = mentor.subjects.length > 0;
@@ -31,7 +33,8 @@ export function MentorCard({ mentor }: MentorCardProps) {
   const bio = mentor.bio ?? "";
   const bioTooLong = bio.length > 200;
 
-  const handleSchedule = () => {
+  const handleSchedule = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!isSignedIn) {
       setIsSignupDialogOpen(true);
       return;
@@ -39,9 +42,24 @@ export function MentorCard({ mentor }: MentorCardProps) {
     setIsSchedulingModalOpen(true);
   };
 
+  const goProfile = () => {
+    navigate(`/mentors/${mentor.id}`);
+  };
+
   return (
     <>
-      <Card className="flex flex-col h-full">
+      <Card
+        className="flex flex-col h-full cursor-pointer transition hover:shadow-md"
+        onClick={goProfile}
+        role="link"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            goProfile();
+          }
+        }}
+      >
         <div className="p-6 flex-1 flex flex-col">
           <div className="flex justify-between items-start mb-4">
             <div className="space-y-2">
@@ -104,7 +122,11 @@ export function MentorCard({ mentor }: MentorCardProps) {
               </p>
               {bioTooLong && (
                 <button
-                  onClick={() => setIsExpanded(!isExpanded)}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsExpanded(!isExpanded);
+                  }}
                   className="text-primary text-sm font-medium mt-1 hover:underline"
                 >
                   {isExpanded ? "See less" : "See more"}
@@ -135,10 +157,15 @@ export function MentorCard({ mentor }: MentorCardProps) {
 
         <div className="p-6 pt-0">
           <Button
+            type="button"
             onClick={handleSchedule}
             className="w-full bg-black text-white hover:bg-black/90"
             disabled={!hasSubjects}
-            title={!hasSubjects ? "No courses available for this mentor yet" : undefined}
+            title={
+              !hasSubjects
+                ? "No courses available for this mentor yet"
+                : undefined
+            }
           >
             {hasSubjects ? "Schedule a session" : "No courses available"}
           </Button>

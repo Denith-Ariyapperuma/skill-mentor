@@ -19,7 +19,7 @@ import java.time.Duration;
  */
 @Configuration
 @EnableCaching
-@ConditionalOnProperty(name = "app.cache.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.cache.enabled", havingValue = "true", matchIfMissing = false)
 public class RedisConfig {
 
 

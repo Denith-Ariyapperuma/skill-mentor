@@ -1,8 +1,13 @@
 package com.stemlink.skillmentor.services.impl;
 
+import com.stemlink.skillmentor.dto.response.MentorProfileResponse;
 import com.stemlink.skillmentor.entities.Mentor;
+import com.stemlink.skillmentor.entities.Session;
+import com.stemlink.skillmentor.entities.Subject;
 import com.stemlink.skillmentor.exceptions.SkillMentorException;
 import com.stemlink.skillmentor.respositories.MentorRepository;
+import com.stemlink.skillmentor.respositories.SessionRepository;
+import com.stemlink.skillmentor.respositories.SubjectRepository;
 import com.stemlink.skillmentor.services.MentorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,9 +16,16 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -22,7 +34,11 @@ import org.springframework.stereotype.Service;
 public class MentorServiceImpl implements MentorService {
 
     private final MentorRepository mentorRepository;
+    private final SubjectRepository subjectRepository;
+    private final SessionRepository sessionRepository;
     private final ModelMapper modelMapper;
+
+    private static final DateTimeFormatter ISO_DT = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
     @CacheEvict(value = "mentors", allEntries = true)
     public Mentor createNewMentor(Mentor mentor) {
@@ -99,6 +115,71 @@ public class MentorServiceImpl implements MentorService {
             log.error("Failed to delete mentor with id {}", id, exception);
             throw new SkillMentorException("Failed to delete mentor", HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public MentorProfileResponse getMentorProfile(Long id) {
+        Mentor m = getMentorById(id);
+        List<Subject> subjects = subjectRepository.findByMentor_Id(id);
+
+        List<MentorProfileResponse.SubjectWithEnrollmentDTO> subjectDtos = subjects.stream()
+                .map(sub -> MentorProfileResponse.SubjectWithEnrollmentDTO.builder()
+                        .id(sub.getId())
+                        .subjectName(sub.getSubjectName())
+                        .description(sub.getDescription())
+                        .courseImageUrl(sub.getCourseImageUrl())
+                        .enrollmentCount(sessionRepository.countBySubject_Id(sub.getId()))
+                        .build())
+                .collect(Collectors.toList());
+
+        List<Session> reviewSessions = sessionRepository.findRecentReviewsForMentor(id, PageRequest.of(0, 20));
+        List<MentorProfileResponse.ReviewItemDTO> reviews = reviewSessions.stream()
+                .map(s -> {
+                    String ln = s.getStudent().getLastName();
+                    String initial = (ln != null && !ln.isEmpty()) ? ln.substring(0, 1) + "." : "";
+                    return MentorProfileResponse.ReviewItemDTO.builder()
+                            .studentName(s.getStudent().getFirstName() + " " + initial)
+                            .rating(s.getStudentRating())
+                            .review(s.getStudentReview())
+                            .sessionAt(s.getSessionAt() != null
+                                    ? s.getSessionAt().toInstant().atOffset(ZoneOffset.UTC).format(ISO_DT)
+                                    : null)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        Double avg = sessionRepository.averageRatingByMentor(id);
+        long reviewCount = sessionRepository.countByMentor_IdAndStudentRatingIsNotNull(id);
+        long totalStudents = sessionRepository.countDistinctStudentsByMentor(id);
+
+        long positive = sessionRepository.countPositiveReviewsForMentor(id);
+        int positivePct = reviewCount == 0 ? 100
+                : (int) Math.round(100.0 * positive / reviewCount);
+
+        return MentorProfileResponse.builder()
+                .id(m.getId())
+                .mentorId(m.getMentorId())
+                .firstName(m.getFirstName())
+                .lastName(m.getLastName())
+                .email(m.getEmail())
+                .phoneNumber(m.getPhoneNumber())
+                .title(m.getTitle())
+                .profession(m.getProfession())
+                .company(m.getCompany())
+                .experienceYears(m.getExperienceYears())
+                .bio(m.getBio())
+                .profileImageUrl(m.getProfileImageUrl())
+                .isCertified(m.getIsCertified())
+                .startYear(m.getStartYear())
+                .averageRating(avg != null ? Math.round(avg * 10.0) / 10.0 : null)
+                .reviewCount(reviewCount)
+                .totalStudentsTaught(totalStudents)
+                .subjectsTaughtCount(subjectDtos.size())
+                .positiveReviewPercent(positivePct)
+                .subjects(subjectDtos)
+                .recentReviews(reviews)
+                .build();
     }
 
 }

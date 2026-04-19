@@ -60,6 +60,9 @@ public class Session implements Serializable {
     @Column(name = "student_rating")
     private Integer studentRating;
 
+    @Column(name = "payment_status", length = 20)
+    private String paymentStatus;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Date createdAt;

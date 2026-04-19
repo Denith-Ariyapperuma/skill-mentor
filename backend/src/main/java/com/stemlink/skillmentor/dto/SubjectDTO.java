@@ -10,8 +10,10 @@ public class SubjectDTO {
     @Size(min = 5, message = "Subject must be at least 5 characters long")
     private String subjectName;
 
-    @Size(max = 100, message = "Description must not exceed 100 characters")
+    @Size(max = 500, message = "Description must not exceed 500 characters")
     private String description;
+
+    private String courseImageUrl;
 
     @NotNull
     private Long mentorId;

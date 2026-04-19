@@ -1,15 +1,19 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router";
-import { useAuth, SignInButton, UserButton } from "@clerk/clerk-react";
+import { useAuth, SignInButton, UserButton, useUser } from "@clerk/clerk-react";
 import SkillMentorLogo from "@/assets/logo.webp";
 import { Menu } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
+import { isClerkAppAdmin } from "@/lib/clerk-admin";
 
 export function Navigation() {
   const { isSignedIn } = useAuth();
+  const { user } = useUser();
   const [isOpen, setIsOpen] = useState(false);
+
+  const isAdmin = isClerkAppAdmin(user);
 
   const NavItems = ({ mobile = false }: { mobile?: boolean }) => (
     <nav
@@ -60,6 +64,17 @@ export function Navigation() {
               Dashboard
             </Button>
           </Link>
+          {isAdmin && (
+            <Link
+              to="/admin/bookings"
+              className={cn(mobile && "w-full")}
+              onClick={() => mobile && setIsOpen(false)}
+            >
+              <Button variant="ghost" className={cn("text-primary", mobile && "w-full")}>
+                Admin
+              </Button>
+            </Link>
+          )}
           <div
             className={cn(
               "flex items-center",
