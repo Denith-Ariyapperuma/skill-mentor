@@ -15,13 +15,14 @@ public class MentorDTO {
     // directly instead of extracting identity from the JWT claims. Ignored for MENTOR role.
     private String mentorId;
 
-    @Size(max = 100, message = "First name must not exceed 100 characters")
+    @Size(max = 50, message = "First name must not exceed 50 characters")
     private String firstName;
 
-    @Size(max = 100, message = "Last name must not exceed 100 characters")
+    @Size(max = 50, message = "Last name must not exceed 50 characters")
     private String lastName;
 
     @Email(message = "Email must be valid")
+    @Size(max = 100, message = "Email must not exceed 100 characters")
     private String email;
 
     @Size(max = 20, message = "Phone number must not exceed 20 characters")
@@ -38,10 +39,10 @@ public class MentorDTO {
 
     private int experienceYears;
 
-    @Size(max = 500, message = "Bio must not exceed 500 characters")
+    @Size(max = 255, message = "Bio must not exceed 255 characters")
     private String bio;
 
-    // Additional fields required for frontend mentor profile displays
+    @Size(max = 2048, message = "Profile image URL must not exceed 2048 characters")
     private String profileImageUrl;
 
     private Integer positiveReviews;

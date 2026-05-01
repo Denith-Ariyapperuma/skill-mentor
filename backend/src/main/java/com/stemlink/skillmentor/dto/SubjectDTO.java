@@ -9,12 +9,14 @@ public class SubjectDTO {
     private Long id;
 
     @NotNull(message = "cannot be null")
-    @Size(min = 5, message = "Subject must be at least 5 characters long")
+    @Size(min = 5, max = 255, message = "Subject name must be 5–255 characters")
     private String subjectName;
 
-    @Size(max = 500, message = "Description must not exceed 500 characters")
+    @NotBlank(message = "Description is required")
+    @Size(min = 5, max = 255, message = "Description must be 5–255 characters")
     private String description;
 
+    @Size(max = 2048, message = "Course image URL must not exceed 2048 characters")
     private String courseImageUrl;
 
     @NotNull

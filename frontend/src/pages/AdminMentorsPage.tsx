@@ -37,6 +37,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MENTOR } from "@/lib/fieldLimits";
 
 const FETCH_SIZE = 500;
 const PAGE_SIZE = 15;
@@ -354,6 +355,82 @@ function EditMentorDialog({
   }));
 
   const submit = async (): Promise<void> => {
+    if (!form.firstName.trim() || form.firstName.length > MENTOR.firstName.max) {
+      toast({
+        title: "Invalid first name",
+        description: `Use 1–${MENTOR.firstName.max} characters.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!form.lastName.trim() || form.lastName.length > MENTOR.lastName.max) {
+      toast({
+        title: "Invalid last name",
+        description: `Use 1–${MENTOR.lastName.max} characters.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!form.email.trim() || form.email.length > MENTOR.email.max) {
+      toast({
+        title: "Invalid email",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (form.phoneNumber.length > MENTOR.phoneNumber.max) {
+      toast({
+        title: "Phone too long",
+        description: `Max ${MENTOR.phoneNumber.max} characters.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (
+      !form.title.trim() ||
+      form.title.length > MENTOR.title.max ||
+      !form.profession.trim() ||
+      form.profession.length > MENTOR.profession.max ||
+      !form.company.trim() ||
+      form.company.length > MENTOR.company.max
+    ) {
+      toast({
+        title: "Invalid title / profession / company",
+        description: `Respect limits (title/profession/company ≤ ${MENTOR.title.max}).`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (
+      typeof form.startYear !== "string" ||
+      form.startYear.length > MENTOR.startYear.max
+    ) {
+      toast({
+        title: "Invalid start year",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!form.bio.trim()) {
+      toast({ title: "Bio required", variant: "destructive" });
+      return;
+    }
+    if (form.bio.length > MENTOR.bio.max) {
+      toast({
+        title: "Bio too long",
+        description: `Max ${MENTOR.bio.max} characters.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (form.profileImageUrl.length > MENTOR.profileImageUrl.max) {
+      toast({
+        title: "Profile image URL too long",
+        description: `Max ${MENTOR.profileImageUrl.max} characters.`,
+        variant: "destructive",
+      });
+      return;
+    }
     setSaving(true);
     try {
       const token = await getToken({ template: "skillmentor-auth" });
@@ -396,6 +473,7 @@ function EditMentorDialog({
           <div className="space-y-1.5">
             <Label>First name</Label>
             <Input
+              maxLength={MENTOR.firstName.max}
               value={form.firstName}
               onChange={(e) =>
                 setForm((f) => ({ ...f, firstName: e.target.value }))
@@ -405,6 +483,7 @@ function EditMentorDialog({
           <div className="space-y-1.5">
             <Label>Last name</Label>
             <Input
+              maxLength={MENTOR.lastName.max}
               value={form.lastName}
               onChange={(e) =>
                 setForm((f) => ({ ...f, lastName: e.target.value }))
@@ -415,6 +494,7 @@ function EditMentorDialog({
             <Label>Email</Label>
             <Input
               type="email"
+              maxLength={MENTOR.email.max}
               value={form.email}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
             />
@@ -422,6 +502,7 @@ function EditMentorDialog({
           <div className="space-y-1.5 sm:col-span-2">
             <Label>Phone</Label>
             <Input
+              maxLength={MENTOR.phoneNumber.max}
               value={form.phoneNumber}
               onChange={(e) =>
                 setForm((f) => ({ ...f, phoneNumber: e.target.value }))
@@ -431,6 +512,7 @@ function EditMentorDialog({
           <div className="space-y-1.5 sm:col-span-2">
             <Label>Title</Label>
             <Input
+              maxLength={MENTOR.title.max}
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
             />
@@ -438,6 +520,7 @@ function EditMentorDialog({
           <div className="space-y-1.5">
             <Label>Profession</Label>
             <Input
+              maxLength={MENTOR.profession.max}
               value={form.profession}
               onChange={(e) =>
                 setForm((f) => ({ ...f, profession: e.target.value }))
@@ -447,6 +530,7 @@ function EditMentorDialog({
           <div className="space-y-1.5">
             <Label>Company</Label>
             <Input
+              maxLength={MENTOR.company.max}
               value={form.company}
               onChange={(e) =>
                 setForm((f) => ({ ...f, company: e.target.value }))
@@ -469,6 +553,7 @@ function EditMentorDialog({
           <div className="space-y-1.5">
             <Label>Start year</Label>
             <Input
+              maxLength={MENTOR.startYear.max}
               value={form.startYear}
               onChange={(e) =>
                 setForm((f) => ({ ...f, startYear: e.target.value }))
@@ -479,13 +564,18 @@ function EditMentorDialog({
             <Label>Bio</Label>
             <Textarea
               rows={4}
+              maxLength={MENTOR.bio.max}
               value={form.bio}
               onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
             />
+            <p className="text-xs text-muted-foreground text-right">
+              {form.bio.length}/{MENTOR.bio.max}
+            </p>
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label>Profile image URL</Label>
             <Input
+              maxLength={MENTOR.profileImageUrl.max}
               value={form.profileImageUrl}
               onChange={(e) =>
                 setForm((f) => ({ ...f, profileImageUrl: e.target.value }))

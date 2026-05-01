@@ -11,27 +11,28 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/components/hooks/use-toast";
 import { createAdminMentor } from "@/lib/api";
+import { MENTOR } from "@/lib/fieldLimits";
 import { GraduationCap, ShieldCheck } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import type { ReactNode } from "react";
 
 const schema = z.object({
-  firstName: z.string().min(1, "Required"),
-  lastName: z.string().min(1, "Required"),
-  email: z.string().email(),
-  phoneNumber: z.string().optional(),
-  title: z.string().min(1, "Required"),
-  profession: z.string().min(1, "Required"),
-  company: z.string().min(1, "Required"),
+  firstName: z.string().min(1, "Required").max(MENTOR.firstName.max),
+  lastName: z.string().min(1, "Required").max(MENTOR.lastName.max),
+  email: z.string().email().max(MENTOR.email.max),
+  phoneNumber: z.string().max(MENTOR.phoneNumber.max),
+  title: z.string().min(1, "Required").max(MENTOR.title.max),
+  profession: z.string().min(1, "Required").max(MENTOR.profession.max),
+  company: z.string().min(1, "Required").max(MENTOR.company.max),
   experienceYears: z.number().min(0),
-  bio: z.string().min(1, "Required"),
+  bio: z.string().min(1, "Required").max(MENTOR.bio.max),
   profileImageUrl: z
     .string()
-    .optional()
+    .max(MENTOR.profileImageUrl.max)
     .refine((v) => !v || /^https?:\/\/.+/i.test(v), "Enter a valid URL"),
   isCertified: z.boolean(),
-  startYear: z.string().min(2, "Required"),
+  startYear: z.string().min(2, "Required").max(MENTOR.startYear.max),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -61,6 +62,12 @@ export default function CreateMentorPage() {
   });
 
   const watchAll = form.watch();
+  const bioLen =
+    typeof watchAll.bio === "string" ? watchAll.bio.length : 0;
+  const profileUrlLen =
+    typeof watchAll.profileImageUrl === "string"
+      ? watchAll.profileImageUrl.length
+      : 0;
 
   const onSubmit = form.handleSubmit(async (values) => {
     setSubmitting(true);
@@ -104,26 +111,26 @@ export default function CreateMentorPage() {
           <form className="space-y-4" onSubmit={onSubmit}>
             <div className="grid sm:grid-cols-2 gap-4">
               <Field label="First name" error={form.formState.errors.firstName}>
-                <Input {...form.register("firstName")} />
+                <Input maxLength={MENTOR.firstName.max} {...form.register("firstName")} />
               </Field>
               <Field label="Last name" error={form.formState.errors.lastName}>
-                <Input {...form.register("lastName")} />
+                <Input maxLength={MENTOR.lastName.max} {...form.register("lastName")} />
               </Field>
             </div>
             <Field label="Email" error={form.formState.errors.email}>
-              <Input type="email" {...form.register("email")} />
+              <Input type="email" maxLength={MENTOR.email.max} {...form.register("email")} />
             </Field>
             <Field label="Phone" error={form.formState.errors.phoneNumber}>
-              <Input {...form.register("phoneNumber")} />
+              <Input maxLength={MENTOR.phoneNumber.max} {...form.register("phoneNumber")} />
             </Field>
             <Field label="Title" error={form.formState.errors.title}>
-              <Input {...form.register("title")} />
+              <Input maxLength={MENTOR.title.max} {...form.register("title")} />
             </Field>
             <Field label="Profession" error={form.formState.errors.profession}>
-              <Input {...form.register("profession")} />
+              <Input maxLength={MENTOR.profession.max} {...form.register("profession")} />
             </Field>
             <Field label="Company" error={form.formState.errors.company}>
-              <Input {...form.register("company")} />
+              <Input maxLength={MENTOR.company.max} {...form.register("company")} />
             </Field>
             <Field
               label="Years experience"
@@ -132,16 +139,30 @@ export default function CreateMentorPage() {
               <Input type="number" {...form.register("experienceYears", { valueAsNumber: true })} />
             </Field>
             <Field label="Start year" error={form.formState.errors.startYear}>
-              <Input {...form.register("startYear")} />
+              <Input maxLength={MENTOR.startYear.max} {...form.register("startYear")} />
             </Field>
             <Field label="Bio" error={form.formState.errors.bio}>
-              <Textarea rows={4} {...form.register("bio")} />
+              <Textarea
+                rows={4}
+                maxLength={MENTOR.bio.max}
+                {...form.register("bio")}
+              />
+              <p className="text-xs text-muted-foreground text-right">
+                {bioLen}/{MENTOR.bio.max}
+              </p>
             </Field>
             <Field
               label="Profile image URL"
               error={form.formState.errors.profileImageUrl}
             >
-              <Input placeholder="https://..." {...form.register("profileImageUrl")} />
+              <Input
+                placeholder="https://..."
+                maxLength={MENTOR.profileImageUrl.max}
+                {...form.register("profileImageUrl")}
+              />
+              <p className="text-xs text-muted-foreground text-right tabular-nums">
+                {profileUrlLen}/{MENTOR.profileImageUrl.max}
+              </p>
             </Field>
             <div className="flex items-center gap-2">
               <Checkbox

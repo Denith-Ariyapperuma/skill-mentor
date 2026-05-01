@@ -26,10 +26,10 @@ public class Subject implements Serializable {
     @Column(nullable = false, name = "subject_name", length = 255)
     private String subjectName;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private String description;
 
-    @Column(name = "course_image_url")
+    @Column(name = "course_image_url", length = 2048)
     private String courseImageUrl;
 
     // --------- Relationship -------------

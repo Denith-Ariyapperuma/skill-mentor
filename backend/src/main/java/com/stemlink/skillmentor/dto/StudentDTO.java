@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 public class StudentDTO {
 
-    @Size(max = 500, message = "Learning goals must not exceed 500 characters")
+    @Size(max = 255, message = "Learning goals must not exceed 255 characters")
     private String learningGoals;
 
 }

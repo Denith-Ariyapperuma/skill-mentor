@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SUBJECT } from "@/lib/fieldLimits";
 
 const PAGE_SIZE = 15;
 const NONE = "__all";
@@ -299,10 +300,45 @@ function EditSubjectDialog({
 
   const save = async (): Promise<void> => {
     const mid = Number(mentorId);
-    if (!subjectName.trim() || subjectName.length < 5) {
+    const nm = subjectName.trim();
+    const desc = description.trim();
+    const urlTrim = courseImageUrl.trim();
+    if (!nm || nm.length < SUBJECT.subjectName.min) {
       toast({
         title: "Invalid name",
-        description: "Subject name needs at least 5 characters.",
+        description: `Subject name needs ${SUBJECT.subjectName.min}–${SUBJECT.subjectName.max} characters.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (nm.length > SUBJECT.subjectName.max) {
+      toast({
+        title: "Invalid name",
+        description: `Subject name must be at most ${SUBJECT.subjectName.max} characters.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (desc.length < SUBJECT.description.min) {
+      toast({
+        title: "Invalid description",
+        description: `Description needs ${SUBJECT.description.min}–${SUBJECT.description.max} characters.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (desc.length > SUBJECT.description.max) {
+      toast({
+        title: "Invalid description",
+        description: `Description must be at most ${SUBJECT.description.max} characters.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (courseImageUrl.length > SUBJECT.courseImageUrl.max) {
+      toast({
+        title: "Invalid URL",
+        description: `Course image URL must be at most ${SUBJECT.courseImageUrl.max} characters.`,
         variant: "destructive",
       });
       return;
@@ -312,10 +348,10 @@ function EditSubjectDialog({
       const token = await getToken({ template: "skillmentor-auth" });
       if (!token) throw new Error("Sign in required");
       await updateSubject(token, row.id, {
-        subjectName: subjectName.trim(),
-        description,
+        subjectName: nm,
+        description: desc,
         mentorId: mid,
-        courseImageUrl: courseImageUrl.trim() || undefined,
+        courseImageUrl: urlTrim || undefined,
       });
       await onSaved();
     } catch (e) {
@@ -354,24 +390,41 @@ function EditSubjectDialog({
           <div className="space-y-1.5">
             <Label>Course name</Label>
             <Input
+              maxLength={SUBJECT.subjectName.max}
               value={subjectName}
               onChange={(e) => setSubjectName(e.target.value)}
             />
+            <div className="flex justify-between gap-2">
+              <p className="text-xs text-muted-foreground">
+                {SUBJECT.subjectName.min}–{SUBJECT.subjectName.max} characters.
+              </p>
+              <p className="text-xs text-muted-foreground tabular-nums">
+                {subjectName.length}/{SUBJECT.subjectName.max}
+              </p>
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label>Description</Label>
             <Textarea
               rows={4}
+              maxLength={SUBJECT.description.max}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
+            <p className="text-xs text-muted-foreground text-right">
+              {description.length}/{SUBJECT.description.max}
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label>Course image URL</Label>
             <Input
+              maxLength={SUBJECT.courseImageUrl.max}
               value={courseImageUrl}
               onChange={(e) => setCourseImageUrl(e.target.value)}
             />
+            <p className="text-xs text-muted-foreground text-right tabular-nums">
+              {courseImageUrl.length}/{SUBJECT.courseImageUrl.max}
+            </p>
           </div>
         </div>
         <DialogFooter>

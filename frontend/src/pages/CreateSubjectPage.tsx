@@ -17,15 +17,30 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/hooks/use-toast";
 import { createAdminSubject, getPublicMentors } from "@/lib/api";
+import { SUBJECT } from "@/lib/fieldLimits";
 import type { Mentor } from "@/types";
 
 const schema = z
   .object({
-    subjectName: z.string().min(5, "At least 5 characters"),
-    description: z.string().min(5),
+    subjectName: z
+      .string()
+      .trim()
+      .min(
+        SUBJECT.subjectName.min,
+        `Course name needs ${SUBJECT.subjectName.min}–${SUBJECT.subjectName.max} characters.`,
+      )
+      .max(SUBJECT.subjectName.max),
+    description: z
+      .string()
+      .trim()
+      .min(
+        SUBJECT.description.min,
+        `Description needs ${SUBJECT.description.min}–${SUBJECT.description.max} characters.`,
+      )
+      .max(SUBJECT.description.max),
     courseImageUrl: z
       .string()
-      .optional()
+      .max(SUBJECT.courseImageUrl.max)
       .refine((v) => !v || /^https?:\/\/.+/i.test(v), "Enter a valid URL"),
     mentorId: z.number().optional(),
   })
@@ -67,9 +82,9 @@ export default function CreateSubjectPage() {
       const token = await getToken({ template: "skillmentor-auth" });
       if (!token) throw new Error("Not signed in");
       await createAdminSubject(token, {
-        subjectName: values.subjectName,
-        description: values.description,
-        courseImageUrl: values.courseImageUrl || undefined,
+        subjectName: values.subjectName.trim(),
+        description: values.description.trim(),
+        courseImageUrl: values.courseImageUrl.trim() || undefined,
         mentorId: values.mentorId!,
       });
       toast({ title: "Subject created" });
@@ -82,6 +97,14 @@ export default function CreateSubjectPage() {
       });
     }
   });
+
+  const subjectNameWatch = form.watch("subjectName");
+  const descriptionWatch = form.watch("description");
+  const courseImageUrlWatch = form.watch("courseImageUrl");
+
+  const mentorIdRaw = form.watch("mentorId");
+  const mentorSelectValue =
+    typeof mentorIdRaw === "number" && mentorIdRaw > 0 ? String(mentorIdRaw) : "";
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
@@ -100,13 +123,10 @@ export default function CreateSubjectPage() {
           <Label>Mentor</Label>
           <Select
             disabled={loadingMentors}
-            onValueChange={(v) => form.setValue("mentorId", Number(v))}
-            value={
-              (() => {
-                const mid = form.watch("mentorId");
-                return mid != null && mid > 0 ? String(mid) : undefined;
-              })()
+            onValueChange={(v) =>
+              form.setValue("mentorId", v === "" ? undefined : Number(v))
             }
+            value={mentorSelectValue}
           >
             <SelectTrigger>
               <SelectValue
@@ -128,8 +148,19 @@ export default function CreateSubjectPage() {
           )}
         </div>
         <div className="space-y-2">
-          <Label>Name</Label>
-          <Input {...form.register("subjectName")} />
+          <Label>Course name</Label>
+          <Input
+            maxLength={SUBJECT.subjectName.max}
+            {...form.register("subjectName")}
+          />
+          <div className="flex justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              {SUBJECT.subjectName.min}–{SUBJECT.subjectName.max} characters.
+            </p>
+            <p className="text-xs text-muted-foreground tabular-nums">
+              {(subjectNameWatch ?? "").length}/{SUBJECT.subjectName.max}
+            </p>
+          </div>
           {form.formState.errors.subjectName && (
             <p className="text-xs text-destructive">
               {form.formState.errors.subjectName.message}
@@ -138,11 +169,40 @@ export default function CreateSubjectPage() {
         </div>
         <div className="space-y-2">
           <Label>Description</Label>
-          <Textarea rows={4} {...form.register("description")} />
+          <Textarea
+            rows={4}
+            maxLength={SUBJECT.description.max}
+            {...form.register("description")}
+          />
+          <div className="flex justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              {SUBJECT.description.min}–{SUBJECT.description.max} characters.
+            </p>
+            <p className="text-xs text-muted-foreground tabular-nums">
+              {(descriptionWatch ?? "").length}/{SUBJECT.description.max}
+            </p>
+          </div>
+          {form.formState.errors.description && (
+            <p className="text-xs text-destructive">
+              {form.formState.errors.description.message}
+            </p>
+          )}
         </div>
         <div className="space-y-2">
           <Label>Course image URL</Label>
-          <Input {...form.register("courseImageUrl")} />
+          <Input
+            placeholder="https://…"
+            maxLength={SUBJECT.courseImageUrl.max}
+            {...form.register("courseImageUrl")}
+          />
+          <p className="text-xs text-muted-foreground text-right tabular-nums">
+            {(courseImageUrlWatch ?? "").length}/{SUBJECT.courseImageUrl.max}
+          </p>
+          {form.formState.errors.courseImageUrl && (
+            <p className="text-xs text-destructive">
+              {form.formState.errors.courseImageUrl.message}
+            </p>
+          )}
         </div>
         <Button type="submit">Create subject</Button>
       </form>
