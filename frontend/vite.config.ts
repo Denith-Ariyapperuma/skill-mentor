@@ -9,7 +9,9 @@ export default defineConfig({
   server: {
     port: 3001,
   },
-  base: "./",
+  // Absolute "/assets/..." URLs. Relative base breaks on SPA deep links / refresh:
+  // e.g. at /admin/x, ./assets/foo.js resolves to /admin/assets/foo.js → HTML fallback → MIME error.
+  base: "/",
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
