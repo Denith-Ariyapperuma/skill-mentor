@@ -3,9 +3,13 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
-// Use root-absolute asset URLs. Relative base ("./") breaks on deep links / refresh:
-// at /admin/foo, ./assets/x.js resolves to /admin/assets/x.js → 404 → SPA serves HTML → MIME error.
-  base: "/",
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  server: {
+    port: 3001,
+  },
+  base: "./",
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
