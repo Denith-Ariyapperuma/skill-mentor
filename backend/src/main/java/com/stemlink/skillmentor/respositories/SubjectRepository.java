@@ -12,4 +12,9 @@ public interface SubjectRepository extends JpaRepository<Subject,Long> {
 
     @Query("select s from Subject s join fetch s.mentor")
     List<Subject> findAllWithMentor();
+
+    boolean existsByMentor_IdAndSubjectNameIgnoreCase(Long mentorId, String subjectName);
+
+    boolean existsByMentor_IdAndSubjectNameIgnoreCaseAndIdNot(
+            Long mentorId, String subjectName, Long id);
 }

@@ -58,16 +58,25 @@ public class SubjectServiceImpl implements SubjectService {
 
     public Subject addNewSubject(Long mentorId, Subject subject){
         try {
+            subject.setId(null);
+            String name = subject.getSubjectName() == null ? "" : subject.getSubjectName().trim();
+            subject.setSubjectName(name);
+
             Mentor mentor = mentorRepository.findById(mentorId).orElseThrow(
                     () -> new SkillMentorException("Mentor not found", HttpStatus.NOT_FOUND)
             );
+            if (subjectRepository.existsByMentor_IdAndSubjectNameIgnoreCase(mentorId, name)) {
+                throw new SkillMentorException(
+                        "This mentor already has a subject with this name — pick a different name.",
+                        HttpStatus.CONFLICT);
+            }
             subject.setMentor(mentor);
             return subjectRepository.save(subject);
         } catch (SkillMentorException e) {
             throw e;
         } catch (DataIntegrityViolationException e) {
-            log.error("Data integrity violation while adding subject: {}", e.getMessage());
-            throw new SkillMentorException("Subject already exists or database constraint violation", HttpStatus.CONFLICT);
+            log.error("Data integrity violation while adding subject: {}", specificMessage(e));
+            throw new SkillMentorException(conflictMessageForDataIntegrity(e), HttpStatus.CONFLICT);
         } catch (Exception exception) {
             log.error("Failed to add new subject", exception);
             throw new SkillMentorException("Failed to add new subject", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -91,12 +100,20 @@ public class SubjectServiceImpl implements SubjectService {
                         () -> new SkillMentorException("Mentor not found", HttpStatus.NOT_FOUND));
                 subject.setMentor(mentor);
             }
+            String name = subject.getSubjectName() == null ? "" : subject.getSubjectName().trim();
+            subject.setSubjectName(name);
+            Long mentorId = subject.getMentor().getId();
+            if (subjectRepository.existsByMentor_IdAndSubjectNameIgnoreCaseAndIdNot(mentorId, name, id)) {
+                throw new SkillMentorException(
+                        "This mentor already has another subject with this name — pick a different name.",
+                        HttpStatus.CONFLICT);
+            }
             return subjectRepository.save(subject);
         } catch (SkillMentorException e) {
             throw e;
         } catch (DataIntegrityViolationException e) {
-            log.error("Data integrity violation while updating subject: {}", e.getMessage());
-            throw new SkillMentorException("Database constraint violation", HttpStatus.CONFLICT);
+            log.error("Data integrity violation while updating subject: {}", specificMessage(e));
+            throw new SkillMentorException(conflictMessageForDataIntegrity(e), HttpStatus.CONFLICT);
         } catch (Exception exception) {
             log.error("Error updating subject", exception);
             throw new SkillMentorException("Failed to update subject", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -110,5 +127,26 @@ public class SubjectServiceImpl implements SubjectService {
             log.error("Failed to delete subject with id {}", id, exception);
             throw new SkillMentorException("Failed to delete subject", HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    private static String specificMessage(DataIntegrityViolationException e) {
+        Throwable c = e.getMostSpecificCause();
+        if (c != null && c.getMessage() != null) {
+            return c.getMessage();
+        }
+        return e.getMessage() != null ? e.getMessage() : "";
+    }
+
+    private static String conflictMessageForDataIntegrity(DataIntegrityViolationException e) {
+        String raw = specificMessage(e);
+        if (raw == null) {
+            return "Could not save subject (database constraint).";
+        }
+        String lower = raw.toLowerCase();
+        if (lower.contains("duplicate") || lower.contains("unique")) {
+            return "That value conflicts with existing data — try a different subject name "
+                    + "(or the database may require a unique name across all subjects).";
+        }
+        return "Could not save subject (database constraint).";
     }
 }
